@@ -1,0 +1,23 @@
+{
+  "experiments": [
+    {
+      "name": "fibonacci",
+      "description": "Вычисление чисел Фибоначчи",
+      "runtimes": ["node"],
+      "configurations": [
+        {
+          "parameters": {
+            "n": 30,
+            "implementation": "recursive",
+            "iterations": 50
+          }
+        }
+      ]
+    }
+  ],
+  "global": {
+    "detailedMetrics": true,
+    "warmupIterations": 3,
+    "resultsPath": "./results"
+  }
+} 
