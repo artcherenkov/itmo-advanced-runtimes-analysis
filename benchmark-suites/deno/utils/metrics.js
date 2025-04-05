@@ -1,35 +1,21 @@
 /**
- * Утилиты для сбора метрик в Node.js
+ * Утилиты для сбора метрик в Deno
  */
-const os = require('os');
-const fs = require('fs');
-const path = require('path');
-const { formatMetrics, saveResults } = require('../../metrics-interface');
+import { join, dirname } from 'https://deno.land/std/path/mod.ts';
+import { formatMetrics } from '../../metrics-interface.mjs';
 
 /**
  * Получает текущее использование CPU
  * @returns {Object} Объект с информацией об использовании CPU
  */
 function getCpuUsage() {
-  const cpus = os.cpus();
-  const cpuCores = cpus.length;
-  
-  // Получаем общее время CPU для всех ядер
-  const totalCpuTime = cpus.reduce((acc, cpu) => {
-    return {
-      user: acc.user + cpu.times.user,
-      nice: acc.nice + cpu.times.nice,
-      sys: acc.sys + cpu.times.sys,
-      idle: acc.idle + cpu.times.idle,
-      irq: acc.irq + cpu.times.irq,
-    };
-  }, { user: 0, nice: 0, sys: 0, idle: 0, irq: 0 });
+  const cpuCores = navigator.hardwareConcurrency;
   
   return {
     cpuCores,
-    user: totalCpuTime.user,
-    system: totalCpuTime.sys,
-    idle: totalCpuTime.idle,
+    user: performance.now(), // Deno не предоставляет прямого доступа к использованию CPU
+    system: 0,
+    idle: 0,
     timestamp: Date.now()
   };
 }
@@ -39,11 +25,18 @@ function getCpuUsage() {
  * @returns {Object} Объект с информацией об использовании памяти
  */
 function getMemoryUsage() {
-  const memoryInfo = process.memoryUsage();
+  // Используем Deno.memoryUsage() для получения информации о памяти
+  const memoryInfo = Deno.memoryUsage();
+  
   return {
     ...memoryInfo,
-    totalMemory: `${Math.round(os.totalmem() / (1024 * 1024))}MB`,
-    freeMemory: `${Math.round(os.freemem() / (1024 * 1024))}MB`,
+    // Добавляем совместимые поля для сравнения с Node.js
+    rss: memoryInfo.rss,
+    heapTotal: memoryInfo.heapTotal,
+    heapUsed: memoryInfo.heapUsed,
+    external: memoryInfo.external || 0,
+    totalMemory: 'unknown', // Deno не предоставляет полный объем памяти
+    freeMemory: 'unknown',
     timestamp: Date.now()
   };
 }
@@ -53,9 +46,10 @@ function getMemoryUsage() {
  * @returns {void}
  */
 function stabilizeSystem() {
-  // Принудительная сборка мусора перед тестом
-  if (global.gc) {
-    global.gc();
+  // Создаем давление на сборщик мусора
+  const garbage = [];
+  for (let i = 0; i < 100; i++) {
+    garbage.push(new Array(1000).fill(0));
   }
   
   // Небольшая пауза для стабилизации системы
@@ -77,7 +71,7 @@ function benchmark(fn, args, options = {}) {
     iterations = 30,
     warmupIterations = 5,
     experiment = 'unknown',
-    outputPath = path.join(process.cwd(), '../../results', `node_${experiment}_${Date.now()}.json`),
+    outputPath = join(Deno.cwd(), '../../results', `deno_${experiment}_${Date.now()}.json`),
     detailedMetrics = true,
   } = options;
   
@@ -108,16 +102,16 @@ function benchmark(fn, args, options = {}) {
     // Замеряем память до выполнения
     const memoryBeforeIteration = detailedMetrics ? getMemoryUsage() : null;
     
-    // Засекаем время выполнения
-    const startTime = process.hrtime.bigint();
+    // Используем performance.now() для замера времени с преобразованием в наносекунды
+    const startTime = performance.now();
     fn(...args);
-    const endTime = process.hrtime.bigint();
+    const endTime = performance.now();
     
     // Замеряем память после выполнения
     const memoryAfterIteration = detailedMetrics ? getMemoryUsage() : null;
     
     // Вычисляем время выполнения в наносекундах
-    const executionTime = Number(endTime - startTime);
+    const executionTime = (endTime - startTime) * 1_000_000; // миллисекунды в наносекунды
     executionTimes.push(executionTime);
     
     // Сохраняем детальные метрики для этой итерации
@@ -132,7 +126,7 @@ function benchmark(fn, args, options = {}) {
             rss: memoryAfterIteration.rss - memoryBeforeIteration.rss,
             heapTotal: memoryAfterIteration.heapTotal - memoryBeforeIteration.heapTotal,
             heapUsed: memoryAfterIteration.heapUsed - memoryBeforeIteration.heapUsed,
-            external: memoryAfterIteration.external - memoryBeforeIteration.external
+            external: (memoryAfterIteration.external || 0) - (memoryBeforeIteration.external || 0)
           }
         }
       });
@@ -148,10 +142,13 @@ function benchmark(fn, args, options = {}) {
   const cpuAfter = getCpuUsage();
   const memoryAfter = getMemoryUsage();
   
+  // Получаем версию Deno
+  const denoVersion = Deno.version.deno;
+  
   // Готовим объект метрик
   const metrics = formatMetrics(
-    'node',
-    process.version,
+    'deno',
+    denoVersion,
     experiment,
     executionTimes,
     { before: memoryBefore, after: memoryAfter },
@@ -163,13 +160,27 @@ function benchmark(fn, args, options = {}) {
     metrics.detailedIterationMetrics = detailedIterationMetrics;
   }
   
-  // Сохраняем результаты
-  saveResults(metrics, outputPath);
+  // Используем встроенный метод metrics-interface для сохранения результатов
+  try {
+    Deno.writeTextFileSync(outputPath, JSON.stringify(metrics, null, 2));
+    console.log(`Результаты сохранены в ${outputPath}`);
+  } catch (error) {
+    console.error(`Ошибка при сохранении результатов: ${error.message}`);
+    
+    // Пробуем создать директорию вручную
+    try {
+      Deno.mkdirSync(dirname(outputPath), { recursive: true });
+      Deno.writeTextFileSync(outputPath, JSON.stringify(metrics, null, 2));
+      console.log(`Результаты сохранены в ${outputPath} после создания директории`);
+    } catch (e) {
+      console.error(`Не удалось сохранить результаты даже после создания директории: ${e.message}`);
+    }
+  }
   
   return metrics;
 }
 
-module.exports = {
+export {
   benchmark,
   getCpuUsage,
   getMemoryUsage

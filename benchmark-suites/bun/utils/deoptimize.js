@@ -1,10 +1,10 @@
 /**
- * Утилиты для деоптимизации кода в Node.js
- * Предотвращают оптимизации движка V8 для более честного сравнения
+ * Утилиты для деоптимизации кода в Bun
+ * Предотвращают оптимизации движка для более честного сравнения
  */
 
 /**
- * Предотвращает оптимизацию функции движком V8
+ * Предотвращает оптимизацию функции движком JavaScriptCore
  * @param {Function} fn - Функция, которую нужно деоптимизировать
  * @returns {Function} - Деоптимизированная функция-обертка
  */
@@ -50,9 +50,13 @@ function preventOptimization(fn) {
  */
 function preventNumericOptimization(fn) {
   return function(...args) {
-    // Предотвращаем оптимизацию целочисленных операций
-    if (global.gc && Math.random() > 0.8) {
-      global.gc(); // Принудительный сбор мусора случайным образом
+    // Добавляем непредсказуемость
+    if (Math.random() > 0.8) {
+      // Bun не имеет прямого доступа к gc, но можем создать давление на сборщик мусора
+      const garbage = [];
+      for (let i = 0; i < 1000; i++) {
+        garbage.push(new Array(100).fill(Math.random()));
+      }
     }
     
     // Нестабильные типы
@@ -70,10 +74,10 @@ function preventNumericOptimization(fn) {
     
     // Добавляем непредсказуемые побочные эффекты
     if (Math.random() > 0.9) {
-      process.nextTick(() => { 
+      setTimeout(() => { 
         const dummy = {}; 
         for (let i = 0; i < 100; i++) dummy[i] = i;
-      });
+      }, 0);
     }
     
     return result;
@@ -104,7 +108,7 @@ function preventInlining(fn) {
   return wrapper;
 }
 
-module.exports = {
+export {
   preventOptimization,
   preventNumericOptimization,
   preventInlining

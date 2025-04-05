@@ -73,13 +73,30 @@ run_benchmark() {
       ;;
       
     "deno")
-      # Здесь будет код для Deno
-      echo -e "${RED}Запуск Deno пока не реализован${NC}"
+      echo -e "${YELLOW}Сборка Docker-образа для Deno...${NC}"
+      docker build -t js-benchmark-$runtime-$run_id -f docker/$runtime/Dockerfile \
+        --build-arg FIB_N=$n \
+        --build-arg FIB_IMPL=$implementation \
+        --build-arg ITERATIONS=$iterations \
+        .
+      
+      echo -e "${YELLOW}Запуск контейнера...${NC}"
+      docker run --rm \
+        -v "$(pwd)/$RESULTS_DIR:/app/results" \
+        -e RESULTS_DIR=/app/results \
+        js-benchmark-$runtime-$run_id
       ;;
       
     "bun")
-      # Здесь будет код для Bun
-      echo -e "${RED}Запуск Bun пока не реализован${NC}"
+      echo -e "${YELLOW}Сборка Docker-образа для Bun...${NC}"
+      docker build -t js-benchmark-$runtime-$run_id -f docker/$runtime/Dockerfile \
+        --build-arg FIB_N=$n \
+        --build-arg FIB_IMPL=$implementation \
+        --build-arg ITERATIONS=$iterations \
+        .
+      
+      echo -e "${YELLOW}Запуск контейнера...${NC}"
+      docker run --rm -v "$(pwd)/$RESULTS_DIR:/app/results" js-benchmark-$runtime-$run_id
       ;;
       
     *)

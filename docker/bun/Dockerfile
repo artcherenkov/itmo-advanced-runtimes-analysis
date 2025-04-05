@@ -1,4 +1,4 @@
-FROM node:20
+FROM oven/bun:latest
 
 WORKDIR /app
 
@@ -7,7 +7,7 @@ ENV CONTAINER=true
 
 # Копирование всех файлов бенчмарка
 COPY ./benchmark-suites/metrics-interface.mjs ./benchmark-suites/
-COPY ./benchmark-suites/node ./benchmark-suites/node
+COPY ./benchmark-suites/bun ./benchmark-suites/bun
 
 # Создание директории для результатов
 RUN mkdir -p /app/results
@@ -22,8 +22,5 @@ ENV FIB_N=$FIB_N
 ENV FIB_IMPL=$FIB_IMPL
 ENV ITERATIONS=$ITERATIONS
 
-# Включаем принудительную сборку мусора
-ENV NODE_OPTIONS="--expose-gc"
-
 # Запуск бенчмарка Фибоначчи с параметрами
-CMD ["sh", "-c", "node ./benchmark-suites/node/fibonacci/index.mjs $FIB_N $FIB_IMPL $ITERATIONS"] 
+CMD ["sh", "-c", "bun ./benchmark-suites/bun/fibonacci/index.js $FIB_N $FIB_IMPL $ITERATIONS"] 

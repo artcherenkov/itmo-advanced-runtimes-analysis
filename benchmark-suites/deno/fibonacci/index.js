@@ -1,9 +1,9 @@
 /**
- * Бенчмарк алгоритма Фибоначчи для Node.js
+ * Бенчмарк алгоритма Фибоначчи для Deno
  */
-const path = require('path');
-const { benchmark } = require('../utils/metrics');
-const { preventNumericOptimization, preventInlining } = require('../utils/deoptimize');
+import { join } from 'https://deno.land/std/path/mod.ts';
+import { benchmark } from '../utils/metrics.js';
+import { preventNumericOptimization, preventInlining } from '../utils/deoptimize.js';
 
 /**
  * Рекурсивная реализация вычисления чисел Фибоначчи
@@ -53,16 +53,16 @@ function fibonacciIterative(n) {
  */
 function runBenchmark() {
   // Получаем входные параметры из аргументов командной строки или переменных окружения
-  const args = process.argv.slice(2);
-  const n = parseInt(args[0] || process.env.FIB_N) || 40; // Значение n по умолчанию - 40
-  const implementation = args[1] || process.env.FIB_IMPL || 'recursive'; // Реализация по умолчанию - рекурсивная
-  const iterations = parseInt(args[2] || process.env.ITERATIONS) || 30; // Количество итераций по умолчанию - 30
+  const args = Deno.args;
+  const n = parseInt(args[0] || Deno.env.get('FIB_N')) || 40; // Значение n по умолчанию - 40
+  const implementation = args[1] || Deno.env.get('FIB_IMPL') || 'recursive'; // Реализация по умолчанию - рекурсивная
+  const iterations = parseInt(args[2] || Deno.env.get('ITERATIONS')) || 30; // Количество итераций по умолчанию - 30
   
-  console.log(`Запуск бенчмарка Фибоначчи для Node.js (${process.version})`);
+  console.log(`Запуск бенчмарка Фибоначчи для Deno (${Deno.version.deno})`);
   console.log(`- Значение n: ${n}`);
   console.log(`- Реализация: ${implementation}`);
   console.log(`- Количество итераций: ${iterations}`);
-  console.log(`- Контейнер: ${process.env.CONTAINER === 'true' ? 'Да' : 'Нет'}`);
+  console.log(`- Контейнер: ${Deno.env.get('CONTAINER') === 'true' ? 'Да' : 'Нет'}`);
   
   // Выбираем функцию для тестирования
   let fnToTest;
@@ -79,20 +79,18 @@ function runBenchmark() {
   
   console.log(`Используется ${description} с деоптимизацией`);
   
-  // Проверка наличия возможности принудительной сборки мусора
-  if (global.gc) {
-    console.log('Принудительная сборка мусора включена (--expose-gc)');
-  } else {
-    console.log('Принудительная сборка мусора недоступна. Для включения запустите с флагом --expose-gc');
-  }
-  
   // Настраиваем параметры бенчмарка
+  const fileName = `deno_fibonacci_${implementation}_n${n}_${Date.now()}.json`;
+  const outputPath = '/app/results/' + fileName;
+  
+  console.log(`Будет использован путь для сохранения: ${outputPath}`);
+  
   const benchmarkOptions = {
     iterations,
     warmupIterations: 3,
     experiment: `fibonacci_${implementation}_n${n}`,
     detailedMetrics: true,
-    outputPath: path.join(__dirname, '../../../results', `node_fibonacci_${implementation}_n${n}_${Date.now()}.json`)
+    outputPath: outputPath
   };
   
   // Запускаем бенчмарк
@@ -111,7 +109,7 @@ function runBenchmark() {
   console.log(`Heap Total: ${(memoryDiff.heapTotal / (1024 * 1024)).toFixed(2)} МБ`);
   console.log(`Heap Used: ${(memoryDiff.heapUsed / (1024 * 1024)).toFixed(2)} МБ`);
   
-  console.log(`\nРезультаты сохранены в: ${benchmarkOptions.outputPath}`);
+  console.log(`\nРезультаты сохранены в: ${outputPath}`);
   
   return results;
 }
