@@ -7,7 +7,7 @@
       "configurations": [
         {
           "parameters": {
-            "n": 30,
+            "n": 40,
             "implementation": "recursive",
             "iterations": 50
           }
