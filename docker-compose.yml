@@ -63,6 +63,36 @@ services:
       - WRK_CONNECTIONS=100
       - WRK_DURATION=30s
 
+  # Новый сервис с простым HTTP-сервером на Node.js
+  simple_http_node:
+    build:
+      context: .
+      dockerfile: docker/http-node/Dockerfile
+    ports:
+      - "3001:3000"
+    environment:
+      - PORT=3000
+
+  # Новый сервис с простым HTTP-сервером на Deno
+  simple_http_deno:
+    build:
+      context: .
+      dockerfile: docker/http-deno/Dockerfile
+    ports:
+      - "3002:3002"
+    environment:
+      - PORT=3002
+
+  # Новый сервис с простым HTTP-сервером на Bun
+  simple_http_bun:
+    build:
+      context: .
+      dockerfile: docker/http-bun/Dockerfile
+    ports:
+      - "3003:3003"
+    environment:
+      - PORT=3003
+
   # Deno бенчмарки
   deno_fibonacci:
     build:
