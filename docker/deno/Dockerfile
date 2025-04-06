@@ -21,17 +21,43 @@ VOLUME ["/app/results"]
 RUN deno cache --reload ./benchmark-suites/metrics-interface.mjs
 RUN deno cache --reload ./benchmark-suites/deno/utils/metrics.js
 RUN deno cache --reload ./benchmark-suites/deno/fibonacci/index.js
+RUN deno cache --reload ./benchmark-suites/deno/sorting/index.js
+RUN deno cache --reload ./benchmark-suites/deno/matrix/index.js
+RUN deno cache --reload ./benchmark-suites/deno/json/index.js
 
-# Параметры запуска по умолчанию: число Фибоначчи, тип реализации (recursive/iterative), итерации
-ARG FIB_N=40
-ARG FIB_IMPL=recursive
-ARG ITERATIONS=30
+# Параметры по умолчанию для всех тестов
+ENV ITERATIONS=30
 
-# Использование аргументов в переменных окружения
-ENV FIB_N=$FIB_N
-ENV FIB_IMPL=$FIB_IMPL
-ENV ITERATIONS=$ITERATIONS
+# Параметры для теста Фибоначчи
+ENV FIB_N=40
+ENV FIB_IMPL=recursive
 
-# Запуск бенчмарка Фибоначчи с параметрами
-# Добавляем необходимые разрешения для Deno
-CMD ["sh", "-c", "deno run --allow-read --allow-write --allow-env --allow-hrtime ./benchmark-suites/deno/fibonacci/index.js $FIB_N $FIB_IMPL $ITERATIONS"] 
+# Параметры для теста сортировки
+ENV ARRAY_SIZE=10000
+ENV SORT_ALGORITHM=quicksort
+
+# Параметры для теста умножения матриц
+ENV MATRIX_SIZE=250
+ENV MATRIX_ALGORITHM=naive
+
+# Параметры для теста JSON
+ENV JSON_OBJECT_SIZE=1000
+ENV JSON_OPERATION=parse-stringify
+
+# Переменная указывающая какой тест запускать
+ENV BENCHMARK_TYPE=fibonacci
+
+# Запуск бенчмарка в зависимости от типа
+CMD ["sh", "-c", "\
+if [ \"$BENCHMARK_TYPE\" = \"fibonacci\" ]; then \
+  deno run --allow-read --allow-write --allow-env --allow-hrtime ./benchmark-suites/deno/fibonacci/index.js $FIB_N $FIB_IMPL $ITERATIONS; \
+elif [ \"$BENCHMARK_TYPE\" = \"sorting\" ]; then \
+  deno run --allow-read --allow-write --allow-env --allow-hrtime ./benchmark-suites/deno/sorting/index.js $ARRAY_SIZE $SORT_ALGORITHM $ITERATIONS; \
+elif [ \"$BENCHMARK_TYPE\" = \"matrix\" ]; then \
+  deno run --allow-read --allow-write --allow-env --allow-hrtime ./benchmark-suites/deno/matrix/index.js $MATRIX_SIZE $MATRIX_ALGORITHM $ITERATIONS; \
+elif [ \"$BENCHMARK_TYPE\" = \"json\" ]; then \
+  deno run --allow-read --allow-write --allow-env --allow-hrtime ./benchmark-suites/deno/json/index.js $JSON_OBJECT_SIZE $JSON_OPERATION $ITERATIONS; \
+else \
+  echo \"Неизвестный тип бенчмарка: $BENCHMARK_TYPE\"; \
+  exit 1; \
+fi"] 

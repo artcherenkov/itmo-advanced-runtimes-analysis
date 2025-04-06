@@ -12,18 +12,42 @@ COPY ./benchmark-suites/node ./benchmark-suites/node
 # Создание директории для результатов
 RUN mkdir -p /app/results
 
-# Параметры запуска по умолчанию: число Фибоначчи, тип реализации (recursive/iterative), итерации
-ARG FIB_N=40
-ARG FIB_IMPL=recursive
-ARG ITERATIONS=30
-
-# Использование аргументов в переменных окружения
-ENV FIB_N=$FIB_N
-ENV FIB_IMPL=$FIB_IMPL
-ENV ITERATIONS=$ITERATIONS
-
 # Включаем принудительную сборку мусора
 ENV NODE_OPTIONS="--expose-gc"
 
-# Запуск бенчмарка Фибоначчи с параметрами
-CMD ["sh", "-c", "node ./benchmark-suites/node/fibonacci/index.mjs $FIB_N $FIB_IMPL $ITERATIONS"] 
+# Параметры по умолчанию для всех тестов
+ENV ITERATIONS=30
+
+# Параметры для теста Фибоначчи
+ENV FIB_N=40
+ENV FIB_IMPL=recursive
+
+# Параметры для теста сортировки
+ENV ARRAY_SIZE=10000
+ENV SORT_ALGORITHM=quicksort
+
+# Параметры для теста умножения матриц
+ENV MATRIX_SIZE=250
+ENV MATRIX_ALGORITHM=naive
+
+# Параметры для теста JSON
+ENV JSON_OBJECT_SIZE=1000
+ENV JSON_OPERATION=parse-stringify
+
+# Переменная указывающая какой тест запускать
+ENV BENCHMARK_TYPE=fibonacci
+
+# Запуск бенчмарка в зависимости от типа
+CMD ["sh", "-c", "\
+if [ \"$BENCHMARK_TYPE\" = \"fibonacci\" ]; then \
+  node ./benchmark-suites/node/fibonacci/index.mjs; \
+elif [ \"$BENCHMARK_TYPE\" = \"sorting\" ]; then \
+  node ./benchmark-suites/node/sorting/index.mjs; \
+elif [ \"$BENCHMARK_TYPE\" = \"matrix\" ]; then \
+  node ./benchmark-suites/node/matrix/index.mjs; \
+elif [ \"$BENCHMARK_TYPE\" = \"json\" ]; then \
+  node ./benchmark-suites/node/json/index.mjs; \
+else \
+  echo \"Неизвестный тип бенчмарка: $BENCHMARK_TYPE\"; \
+  exit 1; \
+fi"] 
