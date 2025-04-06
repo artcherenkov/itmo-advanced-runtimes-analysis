@@ -12,7 +12,7 @@ function show_help {
   echo "Опции:"
   echo "  -a, --all            Запустить все тесты"
   echo "  -r, --runtime RUNTIME  Запустить тесты только для указанного рантайма (node, deno, bun)"
-  echo "  -t, --test TEST      Запустить только указанный тест (fibonacci, sorting, matrix, json)"
+  echo "  -t, --test TEST      Запустить только указанный тест (fibonacci, sorting, matrix, json, http)"
   echo "  -h, --help           Вывести эту справку"
   echo "Примеры:"
   echo "  $0 --all             Запустить все тесты для всех рантаймов"
@@ -63,8 +63,8 @@ if [ "$RUNTIME" != "" ] && [ "$RUNTIME" != "node" ] && [ "$RUNTIME" != "deno" ] 
   exit 1
 fi
 
-if [ "$TEST" != "" ] && [ "$TEST" != "fibonacci" ] && [ "$TEST" != "sorting" ] && [ "$TEST" != "matrix" ] && [ "$TEST" != "json" ]; then
-  echo "Ошибка: Тест должен быть одним из: fibonacci, sorting, matrix, json"
+if [ "$TEST" != "" ] && [ "$TEST" != "fibonacci" ] && [ "$TEST" != "sorting" ] && [ "$TEST" != "matrix" ] && [ "$TEST" != "json" ] && [ "$TEST" != "http" ]; then
+  echo "Ошибка: Тест должен быть одним из: fibonacci, sorting, matrix, json, http"
   exit 1
 fi
 
@@ -96,22 +96,46 @@ SERVICES=()
 if [ "$RUN_ALL" = true ]; then
   # Все комбинации рантаймов и тестов
   RUNTIMES=("node" "deno" "bun")
-  TESTS=("fibonacci" "sorting" "matrix" "json")
+  TESTS=("fibonacci" "sorting" "matrix" "json" "http")
   
   for rt in "${RUNTIMES[@]}"; do
     for tst in "${TESTS[@]}"; do
+      # Пропускаем комбинации http-тестов для deno и bun, если они не реализованы
+      if [ "$tst" = "http" ] && [ "$rt" != "node" ]; then
+        echo "Пропускаем $rt"_"$tst (не реализовано)"
+        continue
+      fi
       SERVICES+=("${rt}_${tst}")
     done
   done
 elif [ "$RUNTIME" != "" ] && [ "$TEST" != "" ]; then
   # Конкретный тест для конкретного рантайма
+  # Проверяем, доступен ли HTTP тест для выбранного рантайма
+  if [ "$TEST" = "http" ] && [ "$RUNTIME" != "node" ]; then
+    echo "Ошибка: HTTP тест доступен только для Node.js"
+    exit 1
+  fi
   SERVICES+=("${RUNTIME}_${TEST}")
 elif [ "$RUNTIME" != "" ]; then
   # Все тесты для конкретного рантайма
-  SERVICES+=("${RUNTIME}_fibonacci" "${RUNTIME}_sorting" "${RUNTIME}_matrix" "${RUNTIME}_json")
+  TESTS=("fibonacci" "sorting" "matrix" "json")
+  
+  # Добавляем HTTP тест только для Node.js
+  if [ "$RUNTIME" = "node" ]; then
+    TESTS+=("http")
+  fi
+  
+  for tst in "${TESTS[@]}"; do
+    SERVICES+=("${RUNTIME}_${tst}")
+  done
 elif [ "$TEST" != "" ]; then
   # Конкретный тест для всех рантаймов
-  SERVICES+=("node_${TEST}" "deno_${TEST}" "bun_${TEST}")
+  if [ "$TEST" = "http" ]; then
+    # HTTP тест доступен только для Node.js
+    SERVICES+=("node_${TEST}")
+  else
+    SERVICES+=("node_${TEST}" "deno_${TEST}" "bun_${TEST}")
+  fi
 else
   # Если ничего не выбрано, запускаем всё
   RUNTIMES=("node" "deno" "bun")
@@ -122,6 +146,9 @@ else
       SERVICES+=("${rt}_${tst}")
     done
   done
+  
+  # Добавляем HTTP тест только для Node.js
+  SERVICES+=("node_http")
 fi
 
 # Показываем список тестов, которые будут запущены

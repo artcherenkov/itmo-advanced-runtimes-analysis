@@ -50,6 +50,19 @@ services:
       - JSON_OPERATION=parse-stringify
       - ITERATIONS=30
 
+  node_http:
+    build:
+      context: .
+      dockerfile: docker/node/Dockerfile
+    volumes:
+      - ./results:/app/results
+    environment:
+      - BENCHMARK_TYPE=http
+      - PORT=3030
+      - WRK_THREADS=4
+      - WRK_CONNECTIONS=100
+      - WRK_DURATION=30s
+
   # Deno бенчмарки
   deno_fibonacci:
     build:
