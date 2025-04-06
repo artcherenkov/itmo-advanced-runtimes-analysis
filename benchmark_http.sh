@@ -1,17 +1,19 @@
 #!/bin/bash
 
 # Скрипт для проведения нагрузочного тестирования HTTP-серверов
-# Использование: ./benchmark_http.sh <runtime>
+# Использование: ./benchmark_http.sh <runtime> [iterations]
 # Где <runtime> может быть: node, deno или bun
+# [iterations] - количество итераций тестирования (по умолчанию 1)
 
 # Проверка количества аргументов
-if [ $# -ne 1 ]; then
-    echo "Использование: $0 <runtime>"
+if [ $# -lt 1 ] || [ $# -gt 2 ]; then
+    echo "Использование: $0 <runtime> [iterations]"
     echo "Доступные рантаймы: node, deno, bun"
     exit 1
 fi
 
 RUNTIME=$1
+ITERATIONS=${2:-1}  # По умолчанию 1 итерация, если не указано иное
 TIMESTAMP=$(date +%Y%m%d%H%M%S)
 RESULTS_DIR="./results"
 RESULTS_FILE="${RESULTS_DIR}/${RUNTIME}_http_${TIMESTAMP}.json"
@@ -71,30 +73,40 @@ WRK_CONNECTIONS=100
 WRK_DURATION=30s
 WRK_URL="http://localhost:$PORT/ping"
 
-echo "Запуск нагрузочного тестирования с помощью wrk..."
-
-# Запуск wrk и сохранение результатов во временный файл
-wrk -t$WRK_THREADS -c$WRK_CONNECTIONS -d$WRK_DURATION $WRK_URL > $TMP_FILE 2>&1
-WRK_EXIT_CODE=$?
-
-if [ $WRK_EXIT_CODE -ne 0 ]; then
-    echo "Ошибка при выполнении wrk. Код выхода: $WRK_EXIT_CODE"
-    
-    # Создание JSON с информацией об ошибке
-    cat > $RESULTS_FILE << EOF
+# Создание начала JSON-файла
+cat > $RESULTS_FILE << EOF
 {
   "runtime": "$RUNTIME",
   "timestamp": "$(date +%Y-%m-%dT%H:%M:%S)",
-  "success": false,
-  "error": "Ошибка при выполнении wrk. Код выхода: $WRK_EXIT_CODE",
-  "raw_output": "$(cat $TMP_FILE | sed 's/"/\\"/g' | tr '\n' ' ')"
-}
+  "configuration": {
+    "threads": $WRK_THREADS,
+    "connections": $WRK_CONNECTIONS,
+    "duration": "$WRK_DURATION",
+    "url": "$WRK_URL",
+    "iterations": $ITERATIONS
+  },
+  "iterations": [
 EOF
-else
-    echo "Нагрузочное тестирование успешно завершено."
+
+SUCCESS=true
+WRK_EXIT_CODE=0
+
+# Цикл для запуска нескольких итераций тестирования
+for ((i=1; i<=$ITERATIONS; i++)); do
+    echo "Запуск итерации $i из $ITERATIONS..."
+    
+    # Запуск wrk и сохранение результатов во временный файл
+    wrk -t$WRK_THREADS -c$WRK_CONNECTIONS -d$WRK_DURATION $WRK_URL > $TMP_FILE 2>&1
+    CURRENT_WRK_EXIT_CODE=$?
+    
+    # Если есть ошибка, обновляем общий статус
+    if [ $CURRENT_WRK_EXIT_CODE -ne 0 ]; then
+        SUCCESS=false
+        WRK_EXIT_CODE=$CURRENT_WRK_EXIT_CODE
+    fi
     
     # Вывод содержимого файла для отладки
-    echo "Вывод wrk:"
+    echo "Вывод wrk (итерация $i):"
     cat $TMP_FILE
     
     # Извлечение данных с помощью awk
@@ -149,7 +161,7 @@ else
     if [ -z "$REQUESTS_PER_SEC" ]; then REQUESTS_PER_SEC=0; fi
     if [ -z "$TRANSFER_PER_SEC" ]; then TRANSFER_PER_SEC="N/A"; fi
     
-    echo "Извлеченные данные:"
+    echo "Извлеченные данные (итерация $i):"
     echo "Latency AVG: $LATENCY_AVG"
     echo "Latency STDEV: $LATENCY_STDEV"
     echo "Latency MAX: $LATENCY_MAX"
@@ -161,41 +173,55 @@ else
     echo "Requests/sec: $REQUESTS_PER_SEC"
     echo "Transfer/sec: $TRANSFER_PER_SEC"
     
-    # Создание JSON-файла с результатами
-    cat > $RESULTS_FILE << EOF
-{
-  "runtime": "$RUNTIME",
-  "timestamp": "$(date +%Y-%m-%dT%H:%M:%S)",
-  "success": true,
-  "configuration": {
-    "threads": $WRK_THREADS,
-    "connections": $WRK_CONNECTIONS,
-    "duration": "$WRK_DURATION",
-    "url": "$WRK_URL"
-  },
-  "results": {
-    "latency": {
-      "avg": "$LATENCY_AVG",
-      "stdev": "$LATENCY_STDEV",
-      "max": "$LATENCY_MAX"
-    },
-    "requests_per_sec": {
-      "avg": $REQ_SEC_AVG,
-      "stdev": $REQ_SEC_STDEV,
-      "max": $REQ_SEC_MAX
-    },
-    "summary": {
-      "total_requests": $TOTAL_REQUESTS,
-      "duration_seconds": $DURATION,
-      "requests_per_sec": $REQUESTS_PER_SEC,
-      "transfer_per_sec": "$TRANSFER_PER_SEC"
+    # Добавление результата итерации в JSON
+    if [ $i -gt 1 ]; then
+        # Добавить запятую после предыдущей итерации, кроме последней
+        echo "," >> $RESULTS_FILE
+    fi
+    
+    # Запись результатов итерации в JSON
+    cat >> $RESULTS_FILE << EOF
+    {
+      "iteration": $i,
+      "timestamp": "$(date +%Y-%m-%dT%H:%M:%S)",
+      "success": $([ $CURRENT_WRK_EXIT_CODE -eq 0 ] && echo "true" || echo "false"),
+      "results": {
+        "latency": {
+          "avg": "$LATENCY_AVG",
+          "stdev": "$LATENCY_STDEV",
+          "max": "$LATENCY_MAX"
+        },
+        "requests_per_sec": {
+          "avg": $REQ_SEC_AVG,
+          "stdev": $REQ_SEC_STDEV,
+          "max": $REQ_SEC_MAX
+        },
+        "summary": {
+          "total_requests": $TOTAL_REQUESTS,
+          "duration_seconds": $DURATION,
+          "requests_per_sec": $REQUESTS_PER_SEC,
+          "transfer_per_sec": "$TRANSFER_PER_SEC"
+        }
+      },
+      "raw_output": "$(cat $TMP_FILE | sed 's/"/\\"/g' | tr '\n' ' ')"
     }
-  },
-  "raw_output": "$(cat $TMP_FILE | sed 's/"/\\"/g' | tr '\n' ' ')"
+EOF
+
+    # Небольшая пауза между итерациями для стабилизации системы
+    if [ $i -lt $ITERATIONS ]; then
+        echo "Ждем 5 секунд перед следующей итерацией..."
+        sleep 5
+    fi
+done
+
+# Завершение JSON-структуры
+cat >> $RESULTS_FILE << EOF
+  ],
+  "success": $SUCCESS
 }
 EOF
-    echo "Результаты сохранены в файл: $RESULTS_FILE"
-fi
+
+echo "Результаты всех итераций сохранены в файл: $RESULTS_FILE"
 
 # Удаление временного файла
 rm -f $TMP_FILE
