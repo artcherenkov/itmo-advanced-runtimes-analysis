@@ -133,13 +133,6 @@ def create_rps_bar_chart(data, output_dir='analysis/http'):
     bars = plt.bar(runtimes, mean_rps, yerr=stdev_rps, color=colors, 
                   alpha=0.8, capsize=10, edgecolor='gray', linewidth=1)
     
-    # Добавляем значения над столбцами
-    for bar, value in zip(bars, mean_rps):
-        height = bar.get_height()
-        plt.text(bar.get_x() + bar.get_width()/2, height + 500,
-                f'{value:.0f}',
-                ha='center', va='bottom', fontsize=12)
-    
     # Настройка осей и заголовков
     plt.title('Сравнение пропускной способности', fontsize=16, fontweight='bold')
     plt.ylabel('Запросов в секунду (RPS)', fontsize=14)
@@ -375,7 +368,7 @@ def main():
     """Основная функция для запуска визуализации"""
     # Путь к директории с результатами
     results_dir = 'results'
-    output_dir = 'analysis/http'
+    output_dir = 'analysis/http/results'
     
     # Проверяем, существуют ли директории
     os.makedirs(output_dir, exist_ok=True)

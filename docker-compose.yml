@@ -73,6 +73,23 @@ services:
     environment:
       - PORT=3000
 
+  # Новый сервис для асинхронного бенчмарка на Node.js
+  simple_async_node:
+    build:
+      context: .
+      dockerfile: docker/http-node/Dockerfile
+    ports:
+      - "3101:3000"
+    environment:
+      - PORT=3000
+      - PARALLEL_TASKS=10
+      - FILE_OPERATION_SIZE=262144
+      - DELAY_MS=50
+    volumes:
+      - ./benchmark-suites/node/async:/app/src
+      - /tmp:/tmp
+    command: node /app/src/index.js
+
   # Новый сервис с простым HTTP-сервером на Deno
   simple_http_deno:
     build:
@@ -83,6 +100,23 @@ services:
     environment:
       - PORT=3002
 
+  # Новый сервис для асинхронного бенчмарка на Deno
+  simple_async_deno:
+    build:
+      context: .
+      dockerfile: docker/http-deno/Dockerfile
+    ports:
+      - "3102:3000"
+    environment:
+      - PORT=3000
+      - PARALLEL_TASKS=10
+      - FILE_OPERATION_SIZE=262144
+      - DELAY_MS=50
+    volumes:
+      - ./benchmark-suites/deno/async:/app/src
+      - /tmp:/tmp
+    command: deno run --allow-net --allow-env --allow-read --allow-write /app/src/index.js
+
   # Новый сервис с простым HTTP-сервером на Bun
   simple_http_bun:
     build:
@@ -92,6 +126,23 @@ services:
       - "3003:3003"
     environment:
       - PORT=3003
+
+  # Новый сервис для асинхронного бенчмарка на Bun
+  simple_async_bun:
+    build:
+      context: .
+      dockerfile: docker/http-bun/Dockerfile
+    ports:
+      - "3103:3000"
+    environment:
+      - PORT=3000
+      - PARALLEL_TASKS=10
+      - FILE_OPERATION_SIZE=262144
+      - DELAY_MS=50
+    volumes:
+      - ./benchmark-suites/bun/async:/app/src
+      - /tmp:/tmp
+    command: bun run /app/src/index.js
 
   # Deno бенчмарки
   deno_fibonacci:
