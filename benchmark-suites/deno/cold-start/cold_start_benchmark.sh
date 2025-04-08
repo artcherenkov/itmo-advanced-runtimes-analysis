@@ -9,6 +9,24 @@
 # Версия скрипта
 SCRIPT_VERSION="1.0.0"
 
+# Парсинг аргументов командной строки
+while getopts ":i:" opt; do
+  case ${opt} in
+    i )
+      CUSTOM_ITERATIONS=$OPTARG
+      ;;
+    \? )
+      echo "Неверный параметр: -$OPTARG" 1>&2
+      echo "Использование: $0 [-i количество_итераций]" 1>&2
+      exit 1
+      ;;
+    : )
+      echo "Параметр -$OPTARG требует значение" 1>&2
+      exit 1
+      ;;
+  esac
+done
+
 # Устанавливаем обработчики ошибок и прерываний
 set -e
 trap cleanup EXIT INT TERM
@@ -20,15 +38,16 @@ CONTAINER_NAME_BASE="deno-cold-start-benchmark"
 IMAGE_NAME="deno-cold-start-benchmark"
 
 # Имя файла с результатами и начальная структура JSON
-RESULTS_FILE="results/deno_cold_start_benchmark_$(date +%Y%m%d_%H%M%S).json"
+RESULTS_FILE="results/cold-start/deno_cold_start_benchmark_$(date +%Y%m%d_%H%M%S).json"
 
 # Переменные для хранения статистики
 declare -a STARTUP_TIMES
 declare -a FIRST_REQUEST_TIMES
 declare -a TOTAL_TIMES
 
-# Количество итераций
-ITERATIONS=30
+# Количество итераций (по умолчанию 30, может быть переопределено через параметр -i)
+ITERATIONS=${CUSTOM_ITERATIONS:-30}
+echo "Количество итераций: $ITERATIONS"
 
 # Максимальное время ожидания (в секундах)
 MAX_WAIT_TIME=30
@@ -188,7 +207,7 @@ get_deno_version() {
 # Функция для создания директории результатов
 create_results_dir() {
     log "Создание директории для результатов..."
-    mkdir -p results
+    mkdir -p results/cold-start
     log "Директория создана"
 }
 
@@ -371,6 +390,7 @@ EOF
 # Главная функция
 main() {
     log "=== Начало тестирования холодного старта Deno v$SCRIPT_VERSION ==="
+    log "Количество итераций: $ITERATIONS"
     
     # Проверяем зависимости
     check_dependencies
