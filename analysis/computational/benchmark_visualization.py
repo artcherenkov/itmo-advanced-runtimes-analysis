@@ -41,7 +41,7 @@ OUTPUT_DIRS = {
     'json_parse-stringify_size1000': 'json_parse_stringify'
 }
 
-def load_benchmark_data(results_dir='results'):
+def load_benchmark_data(results_dir='results/computational'):
     """Загружает все данные бенчмарков из JSON файлов"""
     data = []
     
