@@ -183,8 +183,8 @@ check_dependencies() {
     fi
     
     # Проверка наличия Python
-    if ! command -v python > /dev/null; then
-        log "Ошибка: Python не установлен"
+    if ! command -v python3 > /dev/null; then
+        log "Ошибка: Python3 не установлен"
         exit 1
     fi
     
@@ -249,7 +249,7 @@ run_benchmark_iteration() {
     docker ps -a | grep $container_name > /dev/null 2>&1 && docker rm -f $container_name > /dev/null 2>&1
     
     # Запускаем контейнер и записываем время начала (T0)
-    local start_time=$(python -c "import time; print(int(time.time() * 1000))")
+    local start_time=$(python3 -c "import time; print(int(time.time() * 1000))")
     log "T0: $start_time мс"
     
     # Запускаем контейнер и сохраняем логи
@@ -286,7 +286,7 @@ run_benchmark_iteration() {
     while [ "$request_successful" = false ] && [ $(echo "$wait_seconds < $MAX_WAIT_TIME" | bc -l) -eq 1 ]; do
         # Отправляем HTTP-запрос и замеряем время (T2)
         if curl -s $endpoint -o /dev/null; then
-            request_time=$(python -c "import time; print(int(time.time() * 1000))")
+            request_time=$(python3 -c "import time; print(int(time.time() * 1000))")
             request_successful=true
         else
             sleep 0.1
