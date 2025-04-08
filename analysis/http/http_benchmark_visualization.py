@@ -34,7 +34,7 @@ RUNTIME_NAMES_RU = {
     'bun': 'Bun'
 }
 
-def load_http_benchmark_data(results_dir='results'):
+def load_http_benchmark_data(results_dir='results/http'):
     """Загружает данные HTTP бенчмарков из JSON файлов"""
     data = []
     
@@ -367,7 +367,7 @@ def create_radar_chart(data, output_dir='analysis/http'):
 def main():
     """Основная функция для запуска визуализации"""
     # Путь к директории с результатами
-    results_dir = 'results'
+    results_dir = 'results/http'
     output_dir = 'analysis/http/results'
     
     # Проверяем, существуют ли директории

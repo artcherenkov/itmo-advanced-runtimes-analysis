@@ -1,7 +1,7 @@
 #!/bin/bash
 
-# Скрипт для проведения нагрузочного тестирования HTTP-серверов
-# Использование: ./benchmark_http.sh <runtime> [iterations]
+# Скрипт для проведения нагрузочного тестирования асинхронных HTTP-серверов
+# Использование: ./run_async_benchmarks.sh <runtime> [iterations]
 # Где <runtime> может быть: node, deno или bun
 # [iterations] - количество итераций тестирования (по умолчанию 1)
 
@@ -15,23 +15,23 @@ fi
 RUNTIME=$1
 ITERATIONS=${2:-1}  # По умолчанию 1 итерация, если не указано иное
 TIMESTAMP=$(date +%Y%m%d%H%M%S)
-RESULTS_DIR="./results"
-RESULTS_FILE="${RESULTS_DIR}/${RUNTIME}_http_${TIMESTAMP}.json"
+RESULTS_DIR="./results/async"
+RESULTS_FILE="${RESULTS_DIR}/${RUNTIME}_async_${TIMESTAMP}.json"
 TMP_FILE="/tmp/wrk_output.txt"
 
 # Проверка корректности указанного рантайма
 case $RUNTIME in
     "node")
-        SERVICE="simple_http_node"
-        PORT=3001
+        SERVICE="simple_async_node"
+        PORT=3101
         ;;
     "deno")
-        SERVICE="simple_http_deno"
-        PORT=3002
+        SERVICE="simple_async_deno"
+        PORT=3102
         ;;
     "bun")
-        SERVICE="simple_http_bun"
-        PORT=3003
+        SERVICE="simple_async_bun"
+        PORT=3103
         ;;
     *)
         echo "Ошибка: Неизвестный рантайм '$RUNTIME'"
@@ -43,7 +43,7 @@ esac
 # Создание директории для результатов, если она не существует
 mkdir -p $RESULTS_DIR
 
-echo "Запуск HTTP-сервера на базе $RUNTIME..."
+echo "Запуск асинхронного HTTP-сервера на базе $RUNTIME..."
 docker compose up -d $SERVICE
 
 # Ожидание запуска сервера
@@ -52,7 +52,7 @@ sleep 5
 
 # Проверка доступности сервера
 for i in {1..10}; do
-    if curl -s http://localhost:$PORT/ping > /dev/null; then
+    if curl -s http://localhost:$PORT/async-bench > /dev/null; then
         echo "Сервер запущен и отвечает."
         break
     fi
@@ -71,7 +71,7 @@ done
 WRK_THREADS=4
 WRK_CONNECTIONS=100
 WRK_DURATION=30s
-WRK_URL="http://localhost:$PORT/ping"
+WRK_URL="http://localhost:$PORT/async-bench"
 
 # Создание начала JSON-файла
 cat > $RESULTS_FILE << EOF
@@ -173,6 +173,11 @@ for ((i=1; i<=$ITERATIONS; i++)); do
     echo "Requests/sec: $REQUESTS_PER_SEC"
     echo "Transfer/sec: $TRANSFER_PER_SEC"
     
+    # Также анализируем JSON-ответ сервера для получения дополнительных метрик
+    # Выполняем запрос к серверу и сохраняем ответ
+    SERVER_RESPONSE=$(curl -s http://localhost:$PORT/async-bench)
+    ASYNC_DURATION=$(echo $SERVER_RESPONSE | grep -o '"duration_ms":[0-9.]*' | cut -d':' -f2)
+    
     # Добавление результата итерации в JSON
     if [ $i -gt 1 ]; then
         # Добавить запятую после предыдущей итерации, кроме последней
@@ -200,10 +205,12 @@ for ((i=1; i<=$ITERATIONS; i++)); do
           "total_requests": $TOTAL_REQUESTS,
           "duration_seconds": $DURATION,
           "requests_per_sec": $REQUESTS_PER_SEC,
-          "transfer_per_sec": "$TRANSFER_PER_SEC"
+          "transfer_per_sec": "$TRANSFER_PER_SEC",
+          "server_async_duration_ms": $ASYNC_DURATION
         }
       },
-      "raw_output": "$(cat $TMP_FILE | sed 's/"/\\"/g' | tr '\n' ' ')"
+      "raw_output": "$(cat $TMP_FILE | sed 's/"/\\"/g' | tr '\n' ' ')",
+      "server_response": $(echo $SERVER_RESPONSE | sed 's/$//')
     }
 EOF
 
@@ -227,7 +234,7 @@ echo "Результаты всех итераций сохранены в фа�
 rm -f $TMP_FILE
 
 # Остановка сервера
-echo "Остановка HTTP-сервера..."
+echo "Остановка асинхронного HTTP-сервера..."
 docker compose stop $SERVICE
 
 exit $WRK_EXIT_CODE 

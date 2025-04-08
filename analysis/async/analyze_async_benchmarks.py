@@ -34,7 +34,7 @@ RUNTIME_ORDER = ['node', 'deno', 'bun']
 RUNTIME_NAMES = {'node': 'Node.js', 'deno': 'Deno', 'bun': 'Bun'}
 
 # Конфигурация директорий
-RESULTS_DIR = 'results'
+RESULTS_DIR = 'results/async'
 OUTPUT_DIR = 'analysis/async/results'
 os.makedirs(OUTPUT_DIR, exist_ok=True)
 
