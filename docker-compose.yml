@@ -1,73 +1,11 @@
 version: '3'
 
 services:
-  # Node.js бенчмарки
-  node_fibonacci:
-    build:
-      context: .
-      dockerfile: docker/node/Dockerfile
-    volumes:
-      - ./results:/app/results
-    environment:
-      - BENCHMARK_TYPE=fibonacci
-      - FIB_N=40
-      - FIB_IMPL=recursive
-      - ITERATIONS=30
-
-  node_sorting:
-    build:
-      context: .
-      dockerfile: docker/node/Dockerfile
-    volumes:
-      - ./results:/app/results
-    environment:
-      - BENCHMARK_TYPE=sorting
-      - ARRAY_SIZE=10000
-      - SORT_ALGORITHM=quicksort
-      - ITERATIONS=30
-
-  node_matrix:
-    build:
-      context: .
-      dockerfile: docker/node/Dockerfile
-    volumes:
-      - ./results:/app/results
-    environment:
-      - BENCHMARK_TYPE=matrix
-      - MATRIX_SIZE=250
-      - MATRIX_ALGORITHM=naive
-      - ITERATIONS=20
-
-  node_json:
-    build:
-      context: .
-      dockerfile: docker/node/Dockerfile
-    volumes:
-      - ./results:/app/results
-    environment:
-      - BENCHMARK_TYPE=json
-      - JSON_OBJECT_SIZE=1000
-      - JSON_OPERATION=parse-stringify
-      - ITERATIONS=30
-
-  node_http:
-    build:
-      context: .
-      dockerfile: docker/node/Dockerfile
-    volumes:
-      - ./results:/app/results
-    environment:
-      - BENCHMARK_TYPE=http
-      - PORT=3030
-      - WRK_THREADS=4
-      - WRK_CONNECTIONS=100
-      - WRK_DURATION=30s
-
   # Новый сервис с простым HTTP-сервером на Node.js
   simple_http_node:
     build:
-      context: .
-      dockerfile: docker/http-node/Dockerfile
+      context: ./benchmark-suites/node/http
+      dockerfile: Dockerfile
     ports:
       - "3001:3000"
     environment:
@@ -76,8 +14,8 @@ services:
   # Новый сервис для асинхронного бенчмарка на Node.js
   simple_async_node:
     build:
-      context: .
-      dockerfile: docker/http-node/Dockerfile
+      context: ./benchmark-suites/node/async
+      dockerfile: Dockerfile
     ports:
       - "3101:3000"
     environment:
@@ -93,8 +31,8 @@ services:
   # Новый сервис с простым HTTP-сервером на Deno
   simple_http_deno:
     build:
-      context: .
-      dockerfile: docker/http-deno/Dockerfile
+      context: ./benchmark-suites/deno/http
+      dockerfile: Dockerfile
     ports:
       - "3002:3002"
     environment:
@@ -103,8 +41,8 @@ services:
   # Новый сервис для асинхронного бенчмарка на Deno
   simple_async_deno:
     build:
-      context: .
-      dockerfile: docker/http-deno/Dockerfile
+      context: ./benchmark-suites/deno/async
+      dockerfile: Dockerfile
     ports:
       - "3102:3000"
     environment:
@@ -120,8 +58,8 @@ services:
   # Новый сервис с простым HTTP-сервером на Bun
   simple_http_bun:
     build:
-      context: .
-      dockerfile: docker/http-bun/Dockerfile
+      context: ./benchmark-suites/bun/http
+      dockerfile: Dockerfile
     ports:
       - "3003:3003"
     environment:
@@ -130,8 +68,8 @@ services:
   # Новый сервис для асинхронного бенчмарка на Bun
   simple_async_bun:
     build:
-      context: .
-      dockerfile: docker/http-bun/Dockerfile
+      context: ./benchmark-suites/bun/async
+      dockerfile: Dockerfile
     ports:
       - "3103:3000"
     environment:
@@ -143,101 +81,3 @@ services:
       - ./benchmark-suites/bun/async:/app/src
       - /tmp:/tmp
     command: bun run /app/src/index.js
-
-  # Deno бенчмарки
-  deno_fibonacci:
-    build:
-      context: .
-      dockerfile: docker/deno/Dockerfile
-    volumes:
-      - ./results:/app/results
-    environment:
-      - BENCHMARK_TYPE=fibonacci
-      - FIB_N=40
-      - FIB_IMPL=recursive
-      - ITERATIONS=30
-
-  deno_sorting:
-    build:
-      context: .
-      dockerfile: docker/deno/Dockerfile
-    volumes:
-      - ./results:/app/results
-    environment:
-      - BENCHMARK_TYPE=sorting
-      - ARRAY_SIZE=10000
-      - SORT_ALGORITHM=quicksort
-      - ITERATIONS=30
-
-  deno_matrix:
-    build:
-      context: .
-      dockerfile: docker/deno/Dockerfile
-    volumes:
-      - ./results:/app/results
-    environment:
-      - BENCHMARK_TYPE=matrix
-      - MATRIX_SIZE=250
-      - MATRIX_ALGORITHM=naive
-      - ITERATIONS=20
-
-  deno_json:
-    build:
-      context: .
-      dockerfile: docker/deno/Dockerfile
-    volumes:
-      - ./results:/app/results
-    environment:
-      - BENCHMARK_TYPE=json
-      - JSON_OBJECT_SIZE=1000
-      - JSON_OPERATION=parse-stringify
-      - ITERATIONS=30
-
-  # Bun бенчмарки
-  bun_fibonacci:
-    build:
-      context: .
-      dockerfile: docker/bun/Dockerfile
-    volumes:
-      - ./results:/app/results
-    environment:
-      - BENCHMARK_TYPE=fibonacci
-      - FIB_N=40
-      - FIB_IMPL=recursive
-      - ITERATIONS=30
-
-  bun_sorting:
-    build:
-      context: .
-      dockerfile: docker/bun/Dockerfile
-    volumes:
-      - ./results:/app/results
-    environment:
-      - BENCHMARK_TYPE=sorting
-      - ARRAY_SIZE=10000
-      - SORT_ALGORITHM=quicksort
-      - ITERATIONS=30
-
-  bun_matrix:
-    build:
-      context: .
-      dockerfile: docker/bun/Dockerfile
-    volumes:
-      - ./results:/app/results
-    environment:
-      - BENCHMARK_TYPE=matrix
-      - MATRIX_SIZE=250
-      - MATRIX_ALGORITHM=naive
-      - ITERATIONS=20
-
-  bun_json:
-    build:
-      context: .
-      dockerfile: docker/bun/Dockerfile
-    volumes:
-      - ./results:/app/results
-    environment:
-      - BENCHMARK_TYPE=json
-      - JSON_OBJECT_SIZE=1000
-      - JSON_OPERATION=parse-stringify
-      - ITERATIONS=30 
