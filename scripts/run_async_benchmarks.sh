@@ -22,14 +22,17 @@ TMP_FILE="/tmp/wrk_output.txt"
 # Проверка корректности указанного рантайма
 case $RUNTIME in
     "node")
+        DOCKERFILE="./benchmark-suites/node/async/Dockerfile"
         SERVICE="simple_async_node"
         PORT=3101
         ;;
     "deno")
+        DOCKERFILE="./benchmark-suites/deno/async/Dockerfile"
         SERVICE="simple_async_deno"
         PORT=3102
         ;;
     "bun")
+        DOCKERFILE="./benchmark-suites/bun/async/Dockerfile"
         SERVICE="simple_async_bun"
         PORT=3103
         ;;
@@ -44,6 +47,8 @@ esac
 mkdir -p $RESULTS_DIR
 
 echo "Запуск асинхронного HTTP-сервера на базе $RUNTIME..."
+echo "Используем Dockerfile: $DOCKERFILE"
+# Здесь можно добавить логику для использования Dockerfile из новой директории
 docker compose up -d $SERVICE
 
 # Ожидание запуска сервера

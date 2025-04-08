@@ -22,14 +22,17 @@ TMP_FILE="/tmp/wrk_output.txt"
 # Проверка корректности указанного рантайма
 case $RUNTIME in
     "node")
+        DOCKERFILE="./benchmark-suites/node/http/Dockerfile"
         SERVICE="simple_http_node"
         PORT=3001
         ;;
     "deno")
+        DOCKERFILE="./benchmark-suites/deno/http/Dockerfile"
         SERVICE="simple_http_deno"
         PORT=3002
         ;;
     "bun")
+        DOCKERFILE="./benchmark-suites/bun/http/Dockerfile"
         SERVICE="simple_http_bun"
         PORT=3003
         ;;
@@ -44,6 +47,8 @@ esac
 mkdir -p $RESULTS_DIR
 
 echo "Запуск HTTP-сервера на базе $RUNTIME..."
+echo "Используем Dockerfile: $DOCKERFILE"
+# Здесь можно добавить логику для использования Dockerfile из новой директории
 docker compose up -d $SERVICE
 
 # Ожидание запуска сервера

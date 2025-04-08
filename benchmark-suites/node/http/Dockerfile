@@ -1,12 +1,12 @@
-FROM oven/bun:latest
+FROM node:20
 
 WORKDIR /app
 
 # Копирование файла сервера
-COPY ./benchmark-suites/bun/http/index.js .
+COPY ./index.js .
 
 # Открываем порт
-EXPOSE 3003
+EXPOSE 3001
 
 # Запуск сервера
-CMD ["bun", "index.js"] 
+CMD ["node", "index.js"] 
